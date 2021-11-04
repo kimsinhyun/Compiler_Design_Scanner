@@ -55,7 +55,7 @@ public final class Scanner {
 
   private int scanToken() {
     //----------------------------check ID-------------------------------------
-    if((currentChar >= 'A' && currentChar <= 'Z') || (currentChar >= 'a' && currentChar <= 'z')){
+    if( (currentChar == '_') || (currentChar >= 'A' && currentChar <= 'Z') || (currentChar >= 'a' && currentChar <= 'z')){
       takeIt();
       while ((currentChar >= 'A' && currentChar <= 'Z') || (currentChar >= 'a' && currentChar <= 'z') || isDigit(currentChar) || currentChar == '_')
       {
@@ -78,6 +78,9 @@ public final class Scanner {
       }
       else if(currentLexeme.equals("float")){
         return Token.FLOAT;
+      }
+      else if("true".equals(currentLexeme.toString()) || "false".equals(currentLexeme.toString())){
+        return Token.BOOLLITERAL;
       }
       return Token.ID;
     }
@@ -104,12 +107,9 @@ public final class Scanner {
         }
         if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
           temp_buffer.append(currentChar);
-          
-
           takeIt();
           if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
             temp_buffer.append(currentChar);
-            
             takeIt();  
             if(isDigit(currentChar)){                            //check the third char next to the digit  ex)2.4e+2
               while(isDigit(currentChar)){
@@ -120,7 +120,7 @@ public final class Scanner {
             }
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
               temp_buffer.append(currentChar);
-              // takeIt();
+              takeIt();
               currentColNr--;
               
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
@@ -139,7 +139,7 @@ public final class Scanner {
           }
           else{                                                   //ex)2.4eq
             temp_buffer.append(currentChar);
-            
+            takeIt();
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentColNr = currentColNr-1;
                   return Token.FLOATLITERAL;
@@ -149,13 +149,10 @@ public final class Scanner {
         return Token.FLOATLITERAL;
       }
       else if(currentChar == 'E' | currentChar == 'e'){
-        temp_buffer.append(currentChar);
-          
-
+          temp_buffer.append(currentChar);
           takeIt();
           if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
             temp_buffer.append(currentChar);
-            
             takeIt();  
             if(isDigit(currentChar)){                            //check the third char next to the digit  ex)2.4e+2
               while(isDigit(currentChar)){
@@ -166,7 +163,7 @@ public final class Scanner {
             }
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
               temp_buffer.append(currentChar);
-              // takeIt();
+              takeIt();
               currentColNr--;
               
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
@@ -185,7 +182,7 @@ public final class Scanner {
           }
           else{                                                   //ex)2.4eq
             temp_buffer.append(currentChar);
-            
+            takeIt();
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentColNr = currentColNr-1;
                   return Token.FLOATLITERAL;
@@ -214,6 +211,7 @@ public final class Scanner {
             }
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex).4e+q
               temp_buffer.append(currentChar);
+              takeIt();
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentColNr = currentColNr-4;
@@ -227,8 +225,9 @@ public final class Scanner {
               return Token.FLOATLITERAL;
             }
           }
-          else{                                                   //ex)2.4eq
+          else{                                                   //ex).4eq
             temp_buffer.append(currentChar);
+            takeIt();
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentColNr = currentColNr-3;
                   return Token.FLOATLITERAL;
@@ -240,11 +239,21 @@ public final class Scanner {
     case '+':
         takeIt();
         return Token.PLUS;
+    case '-':
+        takeIt();
+        return Token.MINUS;
     case '*':
         takeIt();
         return Token.TIMES;
+    case '/':
+        takeIt();
+        return Token.DIV;
     case '=':
         takeIt();
+        if(currentChar == '='){
+          takeIt();
+          return Token.EQ;
+        }
         return Token.ASSIGN;
     case '|':
         takeIt();
@@ -266,7 +275,26 @@ public final class Scanner {
         }
     case '!':
       takeIt();
+      if(currentChar == '='){
+        takeIt();
+        return Token.NOTEQ;
+      }
       return Token.NOT;
+    case '<':
+      takeIt();
+      if(currentChar == '='){
+        takeIt();
+        return Token.LESSEQ;
+      }
+      return Token.LESS;
+    case '>':
+      takeIt();
+      if(currentChar == '='){
+        takeIt();
+        return Token.GREATEREQ;
+      }
+      return Token.GREATER;
+           
     case '\u0000': // sourceFile.eot:
       currentLexeme.append('$');
       return Token.EOF;
