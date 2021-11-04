@@ -1,11 +1,11 @@
 ********** MiniC Compiler **********
 Lexical Analysis ...
-token1.kind = Token.ID
-token1.lexeme = "TRUE"
+token1.kind = Token.STRINGLITERAL
+token1.lexeme = "hello there\n"
 token1.src_pos.StartLine = 1
 token1.src_pos.EndLine = 1
 token1.src_pos.StartCol = 1
-token1.src_pos.EndCol = 4
+token1.src_pos.EndCol = 13
 
 token2.kind = Token.EOF
 token2.lexeme = "$"

@@ -234,7 +234,18 @@ public final class Scanner {
           }
         }
         return Token.FLOATLITERAL;
-
+    
+    case '\"':
+        currentChar = sourceFile.readChar();
+        while(true){
+          if(currentChar != '\"'){
+            takeIt();
+          }
+          else{
+            currentChar = sourceFile.readChar();
+            return Token.STRINGLITERAL;
+          }
+        }
 
     case '+':
         takeIt();
