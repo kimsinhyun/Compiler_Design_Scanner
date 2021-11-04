@@ -16,6 +16,7 @@ public final class Scanner {
   private boolean currentlyScanningToken;
   private int currentLineNr;
   private int currentColNr;
+  private boolean exist_error_escape = false;
   
 
   private boolean isDigit(char c) {
@@ -238,7 +239,26 @@ public final class Scanner {
     case '\"':
         currentChar = sourceFile.readChar();
         while(true){
+          if(temp_buffer.length() == 1){
+            temp_buffer.append(currentChar);
+            takeIt();
+          }
+          if(temp_buffer.length() == 2){
+            if ("\\t".equals(temp_buffer.toString())){
+              System.out.println("ERROR: illegal escape sequence");
+              exist_error_escape = true;
+              temp_buffer = new StringBuffer();
+              currentColNr = currentColNr+2;
+            }
+            else{
+              temp_buffer = new StringBuffer();
+            }
+          }
           if(currentChar != '\"'){
+            if(currentChar == '\\'){
+              temp_buffer.append(currentChar);
+              // takeIt();
+            }
             takeIt();
           }
           else{
@@ -417,7 +437,13 @@ public final class Scanner {
       kind = scanToken();
       currentToken = new Token(kind, currentLexeme.toString(), pos);
       // currentColNr = pos.StartCol+currentLexeme.length()-1;
-      pos.EndCol = pos.StartCol+currentLexeme.length()-1;
+      if(!exist_error_escape){
+        pos.EndCol = pos.StartCol+currentLexeme.length()-1;
+      }
+      else{
+        pos.EndCol = pos.StartCol+currentLexeme.length()-1+2;
+        exist_error_escape= false;
+      }
       // currentColNr = currentColNr-1;
       // System.out.println("currentColNr: " + currentColNr);
     }

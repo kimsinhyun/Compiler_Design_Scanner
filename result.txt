@@ -1,11 +1,13 @@
 ********** MiniC Compiler **********
 Lexical Analysis ...
+ERROR: illegal escape sequence
+ERROR: illegal escape sequence
 token1.kind = Token.STRINGLITERAL
-token1.lexeme = "hello there\n"
+token1.lexeme = "\t\t\n"
 token1.src_pos.StartLine = 1
 token1.src_pos.EndLine = 1
 token1.src_pos.StartCol = 1
-token1.src_pos.EndCol = 13
+token1.src_pos.EndCol = 8
 
 token2.kind = Token.EOF
 token2.lexeme = "$"
