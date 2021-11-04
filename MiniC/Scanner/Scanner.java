@@ -17,7 +17,7 @@ public final class Scanner {
   private int currentLineNr;
   private int currentColNr;
   // private boolean exist_error_escape = false;
-  
+  private boolean is_unterminated_STRINGLITERAL = false;
 
   private boolean isDigit(char c) {
     return (c >= '0' && c <= '9');
@@ -237,8 +237,8 @@ public final class Scanner {
         return Token.FLOATLITERAL;
     
     case '\"':
-        // currentChar = sourceFile.readChar();
-        takeIt();
+        currentChar = sourceFile.readChar();
+        // takeIt();
         while(true){
           if(temp_buffer.length() == 1){
             temp_buffer.append(currentChar);
@@ -255,15 +255,23 @@ public final class Scanner {
               temp_buffer = new StringBuffer();
             }
           }
+          else if(currentChar == '\n'){
+            System.out.println("ERROR: unterminated string literal");
+            currentLineNr++;
+            currentColNr = 0;
+            is_unterminated_STRINGLITERAL = true;
+            currentChar = sourceFile.readChar();
+            return Token.STRINGLITERAL;
+          }
           if(currentChar != '\"'){
             if(currentChar == '\\'){
               temp_buffer.append(currentChar);
-              // takeIt();
             }
             takeIt();
           }
+          
           else{
-            takeIt();
+            currentChar = sourceFile.readChar();
             return Token.STRINGLITERAL;
           }
         }
@@ -437,8 +445,21 @@ public final class Scanner {
       pos.StartCol = currentColNr+1;
       kind = scanToken();
       currentToken = new Token(kind, currentLexeme.toString(), pos);
+      if(kind == 18){
+        if(is_unterminated_STRINGLITERAL){
+          pos.EndCol = pos.StartCol+currentLexeme.length();
+          is_unterminated_STRINGLITERAL = false;
+        }
+        else{
+          pos.EndCol = pos.StartCol+currentLexeme.length()-1+2;
+        }
+      }
+      else{
+        pos.EndCol = pos.StartCol+currentLexeme.length()-1;
+      // currentToken = new Token(kind, currentLexeme.toString(), pos);
+      }
       // currentColNr = pos.StartCol+currentLexeme.length()-1;
-      pos.EndCol = pos.StartCol+currentLexeme.length()-1;
+      // pos.EndCol = pos.StartCol+currentLexeme.length()-1;
       
       // currentColNr = currentColNr-1;
       // System.out.println("currentColNr: " + currentColNr);
