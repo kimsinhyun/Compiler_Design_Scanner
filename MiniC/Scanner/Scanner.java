@@ -63,11 +63,14 @@ public final class Scanner {
   }
   
   private char readTempBufferChar(){
-    pointerOfTempBuffer ++;
-    System.out.println("sth...");
+    // pointerOfTempBuffer ++;
+    // System.out.println("sth...");
     try {
       int c = tempSource.read();
-      checkEndOfTempBuffer(c);
+      if (c == -1) {
+        c = '\u0000';
+     }
+      // checkEndOfTempBuffer(c);
       return (char) c;
    } catch (java.io.IOException e) {
      System.out.println("Sth Wrong....");
@@ -76,9 +79,9 @@ public final class Scanner {
   }
 
   private void checkEndOfTempBuffer(int c){
-    if((char)c == '`'){
+    if(c == -1){
       scanningTempBuffer = false;
-      
+      currentChar = sourceFile.readChar();
     }
   }
   
@@ -98,7 +101,7 @@ public final class Scanner {
     {
       currentLexeme.append(currentChar);
     }
-    if(pointerOfTempBuffer < lengthOfTempBuffer){
+    if(scanningTempBuffer){
       currentChar = readTempBufferChar();
     }
     else{
@@ -208,56 +211,61 @@ public final class Scanner {
               return Token.FLOATLITERAL;
             }
           }
+          else if(currentChar=='.'){
+            currentColNr --;
+            return Token.FLOATLITERAL;
+          }
           else{                                                   //ex)2.4eq
             temp_buffer.append(currentChar);
-            takeIt();
+            // takeIt();
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
-            currentColNr = currentColNr-1;
-                  return Token.FLOATLITERAL;
+            currentLexeme.deleteCharAt(currentLexeme.length()-1);
+            currentColNr = currentColNr-2;
+            return Token.FLOATLITERAL;
           }
         }
         // System.out.println("col: "+currentColNr);
         return Token.FLOATLITERAL;
       }
       else if(currentChar == 'E' | currentChar == 'e'){
+        temp_buffer.append(currentChar);
+        takeIt();
+        if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
           temp_buffer.append(currentChar);
-          takeIt();
-          if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
-            temp_buffer.append(currentChar);
-            takeIt();  
-            if(isDigit(currentChar)){                            //check the third char next to the digit  ex)2.4e+2
-              while(isDigit(currentChar)){
-                takeIt();
-              }
-              temp_buffer = new StringBuffer("");
-              return Token.FLOATLITERAL;                        
-            }
-            else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
-              temp_buffer.append(currentChar);
-              // takeIt();
-              // currentColNr--;
-              
-              currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              // currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              currentColNr = currentColNr-3;
-              return Token.FLOATLITERAL;
-            }
-          }
-          else if(isDigit(currentChar)){                         //check the second char next to the digit ex)2.4e232
+          takeIt();  
+          if(isDigit(currentChar)){                            //check the third char next to the digit  ex)2.4e+2
             while(isDigit(currentChar)){
               takeIt();
-              temp_buffer = new StringBuffer("");
-              return Token.FLOATLITERAL;
             }
+            temp_buffer = new StringBuffer("");
+            return Token.FLOATLITERAL;                        
           }
-          else{                                                   //ex)2.4eq
+          else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
             temp_buffer.append(currentChar);
-            takeIt();
+            // takeIt();
+            // System.out.println("hereherehere");
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
-            currentColNr = currentColNr-1;
-                  return Token.FLOATLITERAL;
+            currentLexeme.deleteCharAt(currentLexeme.length()-1);
+            currentLexeme.deleteCharAt(currentLexeme.length()-1);
+            currentColNr = currentColNr-3;
+            return Token.FLOATLITERAL;
           }
+        }
+        else if(isDigit(currentChar)){                         //check the second char next to the digit ex)2.4e232
+          while(isDigit(currentChar)){
+            takeIt();
+            temp_buffer = new StringBuffer("");
+            return Token.FLOATLITERAL;
+          }
+        }
+        else{                                                   //ex)2.4eq
+          temp_buffer.append(currentChar);
+              // takeIt();
+          currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          // currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          // currentColNr = currentColNr-3;
+          return Token.FLOATLITERAL;
+        }
       }
       return Token.INTLITERAL;
 
@@ -562,54 +570,72 @@ public final class Scanner {
     currentLexeme = new StringBuffer("");
     pos = new SourcePos();
     //-------------------------test temp buffer------------------
-    // if(temp_buffer.length() != 0){
-    //   File file = new File("tempBuffer.txt");
-    //   // temp_buffer.append('`');
-    //   String str = temp_buffer.toString();
-    //   lengthOfTempBuffer = str.length();
-    //   // if(str.charAt(str.length()-1) == ' ' || str.charAt(str.length()-1) == '\n' || str.charAt(str.length()-1) == '\t' || str.charAt(str.length()-1) == '\r' || str.charAt(str.length()-1) == 'f'){
-    //   //   str = str.substring(0,str.length()-1);
-    //   // }
-    //   // System.out.println("lengthOfTempBuffer -> " + lengthOfTempBuffer);
-    //   pointerOfTempBuffer = 0;
-    //   try{
-    //     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-    //     writer.write(str);
-    //     writer.close();
-    //   } catch (IOException e){
-    //     e.printStackTrace();
-    //   }
-    //   startScanningTempBuffer();
-    //   temp_buffer = new StringBuffer("");
-    // }
+    if(temp_buffer.length() != 0){
+      File file = new File("tempBuffer.txt");
+      // temp_buffer.append('`');
+      while(currentChar != '\u0000'){
+        takeIt();
+        currentColNr--;
+      }
+      temp_buffer.append(currentLexeme);
+      // temp_buffer.append('\u0000');
+
+      currentLexeme = new StringBuffer();
+      String str = temp_buffer.toString();
+      lengthOfTempBuffer = str.length();
+      // if(str.charAt(str.length()-1) == ' ' || str.charAt(str.length()-1) == '\n' || str.charAt(str.length()-1) == '\t' || str.charAt(str.length()-1) == '\r' || str.charAt(str.length()-1) == 'f'){
+      //   str = str.substring(0,str.length()-1);
+      // }
+      // System.out.println("lengthOfTempBuffer -> " + lengthOfTempBuffer);
+      
+      pointerOfTempBuffer = 0;
+      try{
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+        writer.write(str);
+        writer.close();
+      } catch (IOException e){
+        e.printStackTrace();
+      }
+      startScanningTempBuffer();
+      temp_buffer = new StringBuffer("");
+
+      char test = sourceFile.readChar();
+      StringBuffer testtest = new StringBuffer("");
+      
+      // while(currentChar != '\u0000'){
+      //   takeIt();
+      // }
+      // System.out.println(currentLexeme);
+
+    }
     //-------------------------test temp buffer------------------
 
-    if (temp_buffer.length() != 0){
-      currentColNr = currentColNr+1;
-      pos.StartLine = currentLineNr;
-      pos.EndLine = currentLineNr;
-      pos.StartCol = currentColNr;
-      if(temp_buffer.charAt(0) == ' '){
-          temp_buffer = temp_buffer.delete(0,1);
-          // currentColNr++;
-          pos.StartCol = currentColNr+1;
-      }
-      try{
-        kind = scanToken_tempBuffer(temp_buffer.charAt(0));
-        currentToken = new Token(kind, Character.toString(temp_buffer.charAt(0)), pos);
-        currentColNr = pos.StartCol;
-        pos.EndCol = currentColNr;
-        temp_buffer = temp_buffer.delete(0,1);
-      } catch (java.lang.StringIndexOutOfBoundsException e){
-        kind = scanToken();
-        currentToken = new Token(kind, currentLexeme.toString(), pos);
-        pos.EndCol = currentColNr;
-      }
-    }
+    // if (temp_buffer.length() != 0){
+    //   currentColNr = currentColNr+1;
+    //   pos.StartLine = currentLineNr;
+    //   pos.EndLine = currentLineNr;
+    //   pos.StartCol = currentColNr;
+    //   if(temp_buffer.charAt(0) == ' '){
+    //       temp_buffer = temp_buffer.delete(0,1);
+    //       // currentColNr++;
+    //       pos.StartCol = currentColNr+1;
+    //   }
+    //   try{
+    //     kind = scanToken_tempBuffer(temp_buffer.charAt(0));
+    //     currentToken = new Token(kind, Character.toString(temp_buffer.charAt(0)), pos);
+    //     currentColNr = pos.StartCol;
+    //     pos.EndCol = currentColNr;
+    //     temp_buffer = temp_buffer.delete(0,1);
+    //   } catch (java.lang.StringIndexOutOfBoundsException e){
+    //     kind = scanToken();
+    //     currentToken = new Token(kind, currentLexeme.toString(), pos);
+    //     pos.EndCol = currentColNr;
+    //   }
+    // }
     
     
     // Note: currentLineNr and currentColNr are not maintained yet!
-    else{
+    // else{
       pos.StartLine = currentLineNr;
       pos.EndLine = currentLineNr;
       pos.StartCol = currentColNr+1;
@@ -627,7 +653,7 @@ public final class Scanner {
       else{
         pos.EndCol = pos.StartCol+currentLexeme.length()-1;
       }
-    }
+    // }
     
     if (verbose)
       currentToken.print();
