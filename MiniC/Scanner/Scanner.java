@@ -2,6 +2,7 @@ package MiniC.Scanner;
 
 import MiniC.Scanner.SourceFile;
 import MiniC.Scanner.Token;
+import java.io.*;
 
 public final class Scanner {
 
@@ -12,12 +13,22 @@ public final class Scanner {
   private StringBuffer currentLexeme;
   private StringBuffer temp_buffer = new StringBuffer("");
   private StringBuffer tempLexeme = new StringBuffer("");
+  private int lengthOfTempBuffer; 
+  private int pointerOfTempBuffer;
+
+  private boolean scanningTempBuffer = false;
 
   private boolean currentlyScanningToken;
+  // private boolean currentlyScanningTempToken;
+
   private int currentLineNr;
   private int currentColNr;
   // private boolean exist_error_escape = false;
   private boolean is_unterminated_STRINGLITERAL = false;
+
+  private java.io.File tempFile;
+  private java.io.FileInputStream tempSource;
+
 
   private boolean isDigit(char c) {
     return (c >= '0' && c <= '9');
@@ -38,6 +49,45 @@ public final class Scanner {
     verbose = true;
   }
 
+  private void startScanningTempBuffer(){
+    try {
+      tempFile = new java.io.File("tempBuffer.txt");
+      tempSource = new java.io.FileInputStream(tempFile);
+   } catch (java.io.IOException e) {
+      System.err.println("Error opening file " + "tempBuffer.txt");
+      System.err.println("Exiting...");
+      System.exit(1);
+   }
+   currentChar = readTempBufferChar();
+   scanningTempBuffer = true;
+  }
+  
+  private char readTempBufferChar(){
+    pointerOfTempBuffer ++;
+    System.out.println("sth...");
+    try {
+      int c = tempSource.read();
+      checkEndOfTempBuffer(c);
+      return (char) c;
+   } catch (java.io.IOException e) {
+     System.out.println("Sth Wrong....");
+     return (char)-1;
+   }
+  }
+
+  private void checkEndOfTempBuffer(int c){
+    if((char)c == '`'){
+      scanningTempBuffer = false;
+      
+    }
+  }
+  
+  private void switchToRawSrouce(){
+    scanningTempBuffer = false;
+    currentChar = sourceFile.readChar();
+  }
+  
+
   // takeIt appends the current character to the current token, and gets
   // the next character from the source program (or the to-be-implemented
   // "untake" buffer in case of look-ahead characters that got 'pushed back'
@@ -48,7 +98,19 @@ public final class Scanner {
     {
       currentLexeme.append(currentChar);
     }
-    currentChar = sourceFile.readChar();
+    if(pointerOfTempBuffer < lengthOfTempBuffer){
+      currentChar = readTempBufferChar();
+    }
+    else{
+      currentChar = sourceFile.readChar();
+    }
+    // if(pointerOfTempBuffer<lengthOfTempBuffer){
+    //   currentChar = readTempBufferChar();
+    // }
+    // else{
+    //   // pointerOfTempBuffer = 0;
+    //   currentChar = sourceFile.readChar(); 
+    // }
     currentColNr++;
     
   }
@@ -68,6 +130,15 @@ public final class Scanner {
       else if(currentLexeme.equals("if")){
         return Token.IF;
       }
+      else if(currentLexeme.equals("else")){
+        return Token.ELSE;
+      }
+      else if(currentLexeme.equals("for")){
+        return Token.FOR;
+      }
+      else if(currentLexeme.equals("void")){
+        return Token.VOID;
+      }
       else if(currentLexeme.equals("while")){
         return Token.WHILE;
       }
@@ -85,7 +156,7 @@ public final class Scanner {
       }
       return Token.ID;
     }
-
+    
 
     switch (currentChar) {
 
@@ -121,14 +192,13 @@ public final class Scanner {
             }
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
               temp_buffer.append(currentChar);
-              takeIt();
-              currentColNr--;
-              
+              // takeIt();
+              System.out.println("hereherehere");
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               // currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              currentColNr = currentColNr-2;
-                      return Token.FLOATLITERAL;
+              currentColNr = currentColNr-3;
+              return Token.FLOATLITERAL;
             }
           }
           else if(isDigit(currentChar)){                         //check the second char next to the digit ex)2.4e232
@@ -164,14 +234,14 @@ public final class Scanner {
             }
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
               temp_buffer.append(currentChar);
-              takeIt();
-              currentColNr--;
+              // takeIt();
+              // currentColNr--;
               
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               // currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              currentColNr = currentColNr-2;
-                      return Token.FLOATLITERAL;
+              currentColNr = currentColNr-3;
+              return Token.FLOATLITERAL;
             }
           }
           else if(isDigit(currentChar)){                         //check the second char next to the digit ex)2.4e232
@@ -287,7 +357,74 @@ public final class Scanner {
         return Token.TIMES;
     case '/':
         takeIt();
+        if(currentChar == '/'){             //   check one line comment
+          takeIt();
+          do{
+            takeIt();
+            if (currentChar == '\n'){
+              currentLexeme = new StringBuffer();
+              verbose = false;
+            }
+          } while (currentChar != '\n');
+        }
+        else if(currentChar == '*'){        //check multi line comment
+          while(true){
+            takeIt();
+            if(currentChar == '\n'){
+              currentLineNr ++;
+              takeIt();
+              if(currentChar == ' '){
+                takeIt();
+                if(currentChar != '*'){
+                  System.out.println("ERROR: unterminated multi-line comment.");
+                  currentLexeme = new StringBuffer();
+                  verbose = false;
+                  break;
+                }
+              }
+              else{
+                System.out.println("ERROR: unterminated multi-line comment.");
+                currentLexeme = new StringBuffer();
+                verbose = false;
+                break;
+              }
+              
+            }
+            if(currentChar == '/'){
+              takeIt();
+              currentLexeme = new StringBuffer();
+              verbose = false;
+              break;
+            }
+          } 
+        }
         return Token.DIV;
+    case '{':
+        takeIt();
+        return Token.LEFTBRACE;
+    case '}':
+        takeIt();
+        return Token.RIGHTBRACE;
+    case '[':
+        takeIt();
+        return Token.LEFTBRACKET;
+    case ']':
+        takeIt();
+        return Token.RIGHTBRACKET;
+    case '(':
+        takeIt();
+        return Token.LEFTPAREN;
+    case ')':
+        takeIt();
+        return Token.RIGHTPAREN;
+    case ',':
+        takeIt();
+        return Token.COMMA;
+    case ';':
+        takeIt();
+        return Token.SEMICOLON;
+    
+
     case '=':
         takeIt();
         if(currentChar == '='){
@@ -336,6 +473,12 @@ public final class Scanner {
       return Token.GREATER;
            
     case '\u0000': // sourceFile.eot:
+      // if(scanningTempBuffer){
+      //   switchToRawSrouce();
+      // }
+      // else{
+      //   currentLexeme.append('$');
+      // }
       currentLexeme.append('$');
       return Token.EOF;
     // Add code here for the remaining MiniC tokens...
@@ -392,6 +535,7 @@ public final class Scanner {
     Token currentToken;
     SourcePos pos;
     int kind;
+    //---------------------------find the start of File----------------------------
     currentlyScanningToken = false;
     while (currentChar == ' '
            || currentChar == '\f'
@@ -411,10 +555,35 @@ public final class Scanner {
         }
       takeIt();
     } 
-    
     currentlyScanningToken = true;
+    //---------------------------find the start of File----------------------------
+
+
     currentLexeme = new StringBuffer("");
     pos = new SourcePos();
+    //-------------------------test temp buffer------------------
+    // if(temp_buffer.length() != 0){
+    //   File file = new File("tempBuffer.txt");
+    //   // temp_buffer.append('`');
+    //   String str = temp_buffer.toString();
+    //   lengthOfTempBuffer = str.length();
+    //   // if(str.charAt(str.length()-1) == ' ' || str.charAt(str.length()-1) == '\n' || str.charAt(str.length()-1) == '\t' || str.charAt(str.length()-1) == '\r' || str.charAt(str.length()-1) == 'f'){
+    //   //   str = str.substring(0,str.length()-1);
+    //   // }
+    //   // System.out.println("lengthOfTempBuffer -> " + lengthOfTempBuffer);
+    //   pointerOfTempBuffer = 0;
+    //   try{
+    //     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+    //     writer.write(str);
+    //     writer.close();
+    //   } catch (IOException e){
+    //     e.printStackTrace();
+    //   }
+    //   startScanningTempBuffer();
+    //   temp_buffer = new StringBuffer("");
+    // }
+    //-------------------------test temp buffer------------------
+
     if (temp_buffer.length() != 0){
       currentColNr = currentColNr+1;
       pos.StartLine = currentLineNr;
@@ -434,10 +603,11 @@ public final class Scanner {
       } catch (java.lang.StringIndexOutOfBoundsException e){
         kind = scanToken();
         currentToken = new Token(kind, currentLexeme.toString(), pos);
-        // currentColNr = pos.StartCol+currentLexeme.length()-1;
         pos.EndCol = currentColNr;
       }
     }
+    
+    
     // Note: currentLineNr and currentColNr are not maintained yet!
     else{
       pos.StartLine = currentLineNr;
@@ -445,7 +615,7 @@ public final class Scanner {
       pos.StartCol = currentColNr+1;
       kind = scanToken();
       currentToken = new Token(kind, currentLexeme.toString(), pos);
-      if(kind == 18){
+      if(kind == 18){               //if String Literal
         if(is_unterminated_STRINGLITERAL){
           pos.EndCol = pos.StartCol+currentLexeme.length();
           is_unterminated_STRINGLITERAL = false;
@@ -456,17 +626,13 @@ public final class Scanner {
       }
       else{
         pos.EndCol = pos.StartCol+currentLexeme.length()-1;
-      // currentToken = new Token(kind, currentLexeme.toString(), pos);
       }
-      // currentColNr = pos.StartCol+currentLexeme.length()-1;
-      // pos.EndCol = pos.StartCol+currentLexeme.length()-1;
-      
-      // currentColNr = currentColNr-1;
-      // System.out.println("currentColNr: " + currentColNr);
     }
     
     if (verbose)
       currentToken.print();
+    else
+      enableDebugging();
     return currentToken;
   }
 
