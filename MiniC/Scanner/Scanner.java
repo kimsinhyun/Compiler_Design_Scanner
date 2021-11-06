@@ -196,7 +196,7 @@ public final class Scanner {
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
               temp_buffer.append(currentChar);
               // takeIt();
-              System.out.println("hereherehere");
+              // System.out.println("hereherehere");
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               // currentLexeme.deleteCharAt(currentLexeme.length()-1);
@@ -271,11 +271,11 @@ public final class Scanner {
 
     case '.':
     takeIt();
-        
+    boolean existOneDigit = false;
     while(isDigit(currentChar)){
+      existOneDigit = true;
       takeIt();
       // System.out.println("col: "+currentColNr);
-
     }
     if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
       temp_buffer.append(currentChar);
@@ -320,6 +320,9 @@ public final class Scanner {
         currentColNr = currentColNr-2;
         return Token.FLOATLITERAL;
       }
+    }
+    else if(!existOneDigit){
+      return Token.ERROR;
     }
     // System.out.println("col: "+currentColNr);
     return Token.FLOATLITERAL;
