@@ -78,17 +78,17 @@ public final class Scanner {
    }
   }
 
-  private void checkEndOfTempBuffer(int c){
-    if(c == -1){
-      scanningTempBuffer = false;
-      currentChar = sourceFile.readChar();
-    }
-  }
+  // private void checkEndOfTempBuffer(int c){
+  //   if(c == -1){
+  //     scanningTempBuffer = false;
+  //     currentChar = sourceFile.readChar();
+  //   }
+  // }
   
-  private void switchToRawSrouce(){
-    scanningTempBuffer = false;
-    currentChar = sourceFile.readChar();
-  }
+  // private void switchToRawSrouce(){
+  //   scanningTempBuffer = false;
+  //   currentChar = sourceFile.readChar();
+  // }
   
 
   // takeIt appends the current character to the current token, and gets
@@ -270,49 +270,59 @@ public final class Scanner {
       return Token.INTLITERAL;
 
     case '.':
-        takeIt();
+    takeIt();
         
+    while(isDigit(currentChar)){
+      takeIt();
+      // System.out.println("col: "+currentColNr);
+
+    }
+    if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
+      temp_buffer.append(currentChar);
+      takeIt();
+      if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
+        temp_buffer.append(currentChar);
+        takeIt();  
+        if(isDigit(currentChar)){                            //check the third char next to the digit  ex)2.4e+2
+          while(isDigit(currentChar)){
+            takeIt();
+          }
+          temp_buffer = new StringBuffer("");
+          return Token.FLOATLITERAL;                        
+        }
+        else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
+          temp_buffer.append(currentChar);
+          // takeIt();
+          // System.out.println("hereherehere");
+          currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          // currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          currentColNr = currentColNr-3;
+          return Token.FLOATLITERAL;
+        }
+      }
+      else if(isDigit(currentChar)){                         //check the second char next to the digit ex)2.4e232
         while(isDigit(currentChar)){
           takeIt();
+          temp_buffer = new StringBuffer("");
+          return Token.FLOATLITERAL;
         }
-        if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
-          temp_buffer.append(currentChar);
-          takeIt();
-          if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
-            temp_buffer.append(currentChar);
-            takeIt();  
-            if(isDigit(currentChar)){                            //check the third char next to the digit  ex).4e+2
-              while(isDigit(currentChar)){
-                takeIt();
-              }
-              temp_buffer = new StringBuffer("");
-              return Token.FLOATLITERAL;                        
-            }
-            else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex).4e+q
-              temp_buffer.append(currentChar);
-              takeIt();
-              currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              currentColNr = currentColNr-4;
-                      return Token.FLOATLITERAL;
-            }
-          }
-          else if(isDigit(currentChar)){                         //check the second char next to the digit ex)2.4e232
-            while(isDigit(currentChar)){
-              takeIt();
-              temp_buffer = new StringBuffer("");
-              return Token.FLOATLITERAL;
-            }
-          }
-          else{                                                   //ex).4eq
-            temp_buffer.append(currentChar);
-            takeIt();
-            currentLexeme.deleteCharAt(currentLexeme.length()-1);
-            currentColNr = currentColNr-3;
-                  return Token.FLOATLITERAL;
-          }
-        }
+      }
+      else if(currentChar=='.'){
+        currentColNr --;
         return Token.FLOATLITERAL;
+      }
+      else{                                                   //ex)2.4eq
+        temp_buffer.append(currentChar);
+        // takeIt();
+        currentLexeme.deleteCharAt(currentLexeme.length()-1);
+        currentLexeme.deleteCharAt(currentLexeme.length()-1);
+        currentColNr = currentColNr-2;
+        return Token.FLOATLITERAL;
+      }
+    }
+    // System.out.println("col: "+currentColNr);
+    return Token.FLOATLITERAL;
     
     case '\"':
         currentChar = sourceFile.readChar();
@@ -323,7 +333,7 @@ public final class Scanner {
             takeIt();
           }
           if(temp_buffer.length() == 2){
-            if ("\\t".equals(temp_buffer.toString())){
+            if (!"\\n".equals(temp_buffer.toString())){
               System.out.println("ERROR: illegal escape sequence");
               // exist_error_escape = true;
               temp_buffer = new StringBuffer();
@@ -333,7 +343,9 @@ public final class Scanner {
               temp_buffer = new StringBuffer();
             }
           }
-          else if(currentChar == '\n'){
+
+
+          if(currentChar == '\n'){
             System.out.println("ERROR: unterminated string literal");
             currentLineNr++;
             currentColNr = 0;
@@ -372,7 +384,7 @@ public final class Scanner {
             if (currentChar == '\n'){
               currentLexeme = new StringBuffer();
               verbose = false;
-            }
+            }         /*dfdf*/
           } while (currentChar != '\n');
         }
         else if(currentChar == '*'){        //check multi line comment
@@ -381,7 +393,7 @@ public final class Scanner {
             if(currentChar == '\n'){
               currentLineNr ++;
               takeIt();
-              if(currentChar == ' '){
+              if(currentChar == ' '){      //mulyi line comment new line
                 takeIt();
                 if(currentChar != '*'){
                   System.out.println("ERROR: unterminated multi-line comment.");
@@ -389,7 +401,7 @@ public final class Scanner {
                   verbose = false;
                   break;
                 }
-              }
+              }       
               else{
                 System.out.println("ERROR: unterminated multi-line comment.");
                 currentLexeme = new StringBuffer();
@@ -398,12 +410,31 @@ public final class Scanner {
               }
               
             }
-            if(currentChar == '/'){
+            if(currentChar == '*'){       //check termination of multi line comment
               takeIt();
-              currentLexeme = new StringBuffer();
-              verbose = false;
-              break;
+              if(currentChar == '/')
+              {
+                takeIt();
+                currentLexeme = new StringBuffer();
+                verbose = false;
+                break;
+              }
+              
             }
+            // if(currentChar == '*'){
+            //   takeIt();
+            //   temp_buffer.append(currentChar);
+            // }
+            // if(temp_buffer.length() == 1){
+            //   if(currentChar == '/'){
+            //     currentLexeme = new StringBuffer();
+            //     verbose = false;
+            //     break;
+            //   }
+            //   else{
+            //     temp_buffer = new StringBuffer();
+            //   }
+            // }
           } 
         }
         return Token.DIV;
@@ -647,7 +678,8 @@ public final class Scanner {
           is_unterminated_STRINGLITERAL = false;
         }
         else{
-          pos.EndCol = pos.StartCol+currentLexeme.length()-1+2;
+          pos.EndCol = pos.StartCol+currentLexeme.length()-1+2;     //because of "" should not be printed
+          currentColNr = currentColNr+2;
         }
       }
       else{
