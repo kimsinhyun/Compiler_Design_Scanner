@@ -1,9 +1,31 @@
 ********** MiniC Compiler **********
 Lexical Analysis ...
-token2.kind = Token.EOF
-token2.lexeme = "$"
-token2.src_pos.StartLine = 2
-token2.src_pos.EndLine = 2
-token2.src_pos.StartCol = 1
-token2.src_pos.EndCol = 1
+token1.kind = Token.FLOATLITERAL
+token1.lexeme = "2.0e"
+token1.src_pos.StartLine = 1
+token1.src_pos.EndLine = 1
+token1.src_pos.StartCol = 1
+token1.src_pos.EndCol = 4
+
+token2.kind = Token.ID
+token2.lexeme = "e"
+token2.src_pos.StartLine = 1
+token2.src_pos.EndLine = 1
+token2.src_pos.StartCol = 4
+token2.src_pos.EndCol = 4
+
+token3.kind = Token.FLOATLITERAL
+token3.lexeme = ".4"
+token3.src_pos.StartLine = 1
+token3.src_pos.EndLine = 1
+token3.src_pos.StartCol = 5
+token3.src_pos.EndCol = 6
+
+ERROR: unterminated multi-line comment.
+token4.kind = Token.EOF
+token4.lexeme = "$"
+token4.src_pos.StartLine = 2
+token4.src_pos.EndLine = 2
+token4.src_pos.StartCol = 7
+token4.src_pos.EndCol = 7
 

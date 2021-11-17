@@ -14,16 +14,15 @@ public final class Scanner {
   private StringBuffer temp_buffer = new StringBuffer("");
   private StringBuffer tempLexeme = new StringBuffer("");
   private int lengthOfTempBuffer; 
-  private int pointerOfTempBuffer;
 
   private boolean scanningTempBuffer = false;
+  private int afterCommentStartCol = -1;
 
   private boolean currentlyScanningToken;
-  // private boolean currentlyScanningTempToken;
+
 
   private int currentLineNr;
   private int currentColNr;
-  // private boolean exist_error_escape = false;
   private boolean is_unterminated_STRINGLITERAL = false;
 
   private java.io.File tempFile;
@@ -63,33 +62,17 @@ public final class Scanner {
   }
   
   private char readTempBufferChar(){
-    // pointerOfTempBuffer ++;
-    // System.out.println("sth...");
     try {
       int c = tempSource.read();
       if (c == -1) {
         c = '\u0000';
      }
-      // checkEndOfTempBuffer(c);
       return (char) c;
    } catch (java.io.IOException e) {
      System.out.println("Sth Wrong....");
      return (char)-1;
    }
   }
-
-  // private void checkEndOfTempBuffer(int c){
-  //   if(c == -1){
-  //     scanningTempBuffer = false;
-  //     currentChar = sourceFile.readChar();
-  //   }
-  // }
-  
-  // private void switchToRawSrouce(){
-  //   scanningTempBuffer = false;
-  //   currentChar = sourceFile.readChar();
-  // }
-  
 
   // takeIt appends the current character to the current token, and gets
   // the next character from the source program (or the to-be-implemented
@@ -107,15 +90,7 @@ public final class Scanner {
     else{
       currentChar = sourceFile.readChar();
     }
-    // if(pointerOfTempBuffer<lengthOfTempBuffer){
-    //   currentChar = readTempBufferChar();
-    // }
-    // else{
-    //   // pointerOfTempBuffer = 0;
-    //   currentChar = sourceFile.readChar(); 
-    // }
     currentColNr++;
-    
   }
 
 
@@ -166,7 +141,6 @@ public final class Scanner {
     case '0':  case '1':  case '2':  case '3':  case '4':     //floatLITERAL has some problem
     case '5':  case '6':  case '7':  case '8':  case '9':
       takeIt();
-      // System.out.println("col: "+currentColNr);
       boolean isFloat = false;
       boolean check_not_float = false;
       while (isDigit(currentChar)) {
@@ -177,8 +151,6 @@ public final class Scanner {
         
         while(isDigit(currentChar)){
           takeIt();
-          // System.out.println("col: "+currentColNr);
-
         }
         if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
           temp_buffer.append(currentChar);
@@ -195,11 +167,10 @@ public final class Scanner {
             }
             else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
               temp_buffer.append(currentChar);
-              // takeIt();
-              // System.out.println("hereherehere");
+              takeIt();
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentLexeme.deleteCharAt(currentLexeme.length()-1);
-              // currentLexeme.deleteCharAt(currentLexeme.length()-1);
+              currentLexeme.deleteCharAt(currentLexeme.length()-1);
               currentColNr = currentColNr-3;
               return Token.FLOATLITERAL;
             }
@@ -212,22 +183,21 @@ public final class Scanner {
             }
           }
           else if(currentChar=='.'){
+            currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentColNr --;
             return Token.FLOATLITERAL;
           }
           else{                                                   //ex)2.4eq
             temp_buffer.append(currentChar);
-            // takeIt();
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
-            currentColNr = currentColNr-2;
+            currentColNr = currentColNr-1;
             return Token.FLOATLITERAL;
           }
         }
-        // System.out.println("col: "+currentColNr);
         return Token.FLOATLITERAL;
       }
-      else if(currentChar == 'E' | currentChar == 'e'){
+      else if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
         temp_buffer.append(currentChar);
         takeIt();
         if(currentChar == '+' | currentChar == '-'){      //check the second char next to the digit
@@ -242,8 +212,7 @@ public final class Scanner {
           }
           else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
             temp_buffer.append(currentChar);
-            // takeIt();
-            // System.out.println("hereherehere");
+            takeIt();
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
             currentLexeme.deleteCharAt(currentLexeme.length()-1);
@@ -258,12 +227,16 @@ public final class Scanner {
             return Token.FLOATLITERAL;
           }
         }
+        else if(currentChar=='.'){
+          currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          currentColNr --;
+          return Token.FLOATLITERAL;
+        }
         else{                                                   //ex)2.4eq
           temp_buffer.append(currentChar);
-              // takeIt();
           currentLexeme.deleteCharAt(currentLexeme.length()-1);
-          // currentLexeme.deleteCharAt(currentLexeme.length()-1);
-          // currentColNr = currentColNr-3;
+          currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          currentColNr = currentColNr-1;
           return Token.FLOATLITERAL;
         }
       }
@@ -275,7 +248,6 @@ public final class Scanner {
     while(isDigit(currentChar)){
       existOneDigit = true;
       takeIt();
-      // System.out.println("col: "+currentColNr);
     }
     if(currentChar == 'E' | currentChar == 'e'){   //check the first char next to the digit
       temp_buffer.append(currentChar);
@@ -292,11 +264,10 @@ public final class Scanner {
         }
         else{                                                   //if thrid char is not digit -> not FLOATLITERAL ex)2.4e+q
           temp_buffer.append(currentChar);
-          // takeIt();
-          // System.out.println("hereherehere");
+          takeIt();
           currentLexeme.deleteCharAt(currentLexeme.length()-1);
           currentLexeme.deleteCharAt(currentLexeme.length()-1);
-          // currentLexeme.deleteCharAt(currentLexeme.length()-1);
+          currentLexeme.deleteCharAt(currentLexeme.length()-1);
           currentColNr = currentColNr-3;
           return Token.FLOATLITERAL;
         }
@@ -309,6 +280,7 @@ public final class Scanner {
         }
       }
       else if(currentChar=='.'){
+        currentLexeme.deleteCharAt(currentLexeme.length()-1);
         currentColNr --;
         return Token.FLOATLITERAL;
       }
@@ -317,7 +289,7 @@ public final class Scanner {
         // takeIt();
         currentLexeme.deleteCharAt(currentLexeme.length()-1);
         currentLexeme.deleteCharAt(currentLexeme.length()-1);
-        currentColNr = currentColNr-2;
+        currentColNr = currentColNr-1;
         return Token.FLOATLITERAL;
       }
     }
@@ -378,69 +350,173 @@ public final class Scanner {
     case '*':
         takeIt();
         return Token.TIMES;
+        
     case '/':
         takeIt();
-        if(currentChar == '/'){             //   check one line comment
+        //-------------------start scan multi line comment----------------------
+        if(currentChar=='*'){
+          currentlyScanningToken=false;
           takeIt();
-          do{
-            takeIt();
-            if (currentChar == '\n'){
-              currentLexeme = new StringBuffer();
-              verbose = false;
-            }         /*dfdf*/
-          } while (currentChar != '\n');
-        }
-        else if(currentChar == '*'){        //check multi line comment
           while(true){
-            takeIt();
-            if(currentChar == '\n'){
-              currentLineNr ++;
-              takeIt();
-              if(currentChar == ' '){      //mulyi line comment new line
-                takeIt();
-                if(currentChar != '*'){
-                  System.out.println("ERROR: unterminated multi-line comment.");
-                  currentLexeme = new StringBuffer();
-                  verbose = false;
-                  break;
-                }
-              }       
-              else{
-                System.out.println("ERROR: unterminated multi-line comment.");
-                currentLexeme = new StringBuffer();
-                verbose = false;
-                break;
-              }
-              
+            if(currentChar=='\u0000'){
+              currentLexeme=new StringBuffer();
+              currentLexeme.append('$');
+              currentLineNr++;
+              System.out.println("ERROR: unterminated multi-line comment.");
+              return Token.EOF;
             }
-            if(currentChar == '*'){       //check termination of multi line comment
-              takeIt();
-              if(currentChar == '/')
+            while(currentChar!='*'){
+              if (currentChar == '\f'
+              || currentChar == '\n'
+              || currentChar == '\r'
+              || currentChar == '\t'
+              || currentChar == ' ')
               {
-                takeIt();
-                currentLexeme = new StringBuffer();
-                verbose = false;
-                break;
+                if(currentChar == '\n'){
+                  takeIt();
+                  currentLineNr++;
+                  currentColNr = 1;
+                }
+                else{
+                  takeIt();
+                }
+                continue;
               }
-              
+              takeIt();
+              if(currentChar=='\u0000'){
+                currentLexeme=new StringBuffer();
+                currentLexeme.append('$');
+                System.out.println("ERROR: unterminated multi-line comment.");
+                return Token.EOF;
+              } 
             }
-            // if(currentChar == '*'){
-            //   takeIt();
-            //   temp_buffer.append(currentChar);
-            // }
-            // if(temp_buffer.length() == 1){
-            //   if(currentChar == '/'){
-            //     currentLexeme = new StringBuffer();
-            //     verbose = false;
-            //     break;
-            //   }
-            //   else{
-            //     temp_buffer = new StringBuffer();
-            //   }
-            // }
-          } 
+
+            takeIt();         //if got '*' then check the next char is '/'
+            
+            if(currentChar!='/'){         //if '/' is not followed next '*', continue read comment
+              if (currentChar == '\f'
+              || currentChar == '\n'
+              || currentChar == '\r'
+              || currentChar == '\t'
+              || currentChar == ' ')
+              {
+                if(currentChar == '\n'){
+                  takeIt();
+                  currentLineNr++;
+                  currentColNr = 1;  
+                }
+                else{
+                  takeIt();
+                }
+                continue;
+              }
+              continue;// takeIt();
+            }
+            //----------terminated multi line comment------------
+            else{                                             //if '*/'  ('/'is currentChar), it's terminated comment
+                takeIt();
+                
+                currentLexeme = new StringBuffer();
+                currentlyScanningToken = false;
+                while (currentChar == ' '
+                      || currentChar == '\f'
+                      || currentChar == '\n'
+                      || currentChar == '\r'
+                      || currentChar == '\t')
+                {
+                  if(currentChar == '\n'){
+                    currentLineNr ++;
+                    currentColNr = -1;
+                    }
+                  else if(currentChar =='\t'){
+                    currentColNr = currentColNr + 4;
+                    }
+                  else if(currentChar == ' '){
+                    }
+                  takeIt();
+                } 
+                currentlyScanningToken = true;
+                int kind;
+                afterCommentStartCol = currentColNr;
+
+                kind = scanToken();
+                return kind;
+            }
+            //----------terminated multi line comment------------
+          }
+
         }
+        //-------------------end scan multi line comment----------------------
+
+        //-------------------start scan single line comment----------------------
+        else if(currentChar=='/'){
+          currentlyScanningToken=false;
+          takeIt();
+          while(true){
+          if(currentChar=='\n'){
+            currentLineNr++;
+            takeIt();
+                currentLexeme = new StringBuffer();
+                currentlyScanningToken = false;
+                while (currentChar == ' '
+                      || currentChar == '\f'
+                      || currentChar == '\n'
+                      || currentChar == '\r'
+                      || currentChar == '\t')
+                {
+                  if(currentChar == '\n'){
+                    currentLineNr ++;
+                    currentColNr = -1;
+                    }
+                  else if(currentChar =='\t'){
+                    currentColNr = currentColNr + 4;
+                    }
+                  else if(currentChar == ' '){
+                    // currentColNr++;
+                    }
+                  takeIt();
+                } 
+                currentlyScanningToken = true;
+                int kind;
+                kind = scanToken();
+                return kind;
+          }
+          takeIt();
+          if(currentChar=='\n'){
+            currentLineNr++;
+            takeIt();
+                currentLexeme = new StringBuffer();
+                currentlyScanningToken = false;
+                while (currentChar == ' '
+                      || currentChar == '\f'
+                      || currentChar == '\n'
+                      || currentChar == '\r'
+                      || currentChar == '\t')
+                {
+                  if(currentChar == '\n'){
+                    currentLineNr ++;
+                    currentColNr = -1;
+                    }
+                  else if(currentChar =='\t'){
+                    currentColNr = currentColNr + 4;
+                    }
+                  else if(currentChar == ' '){
+                    // currentColNr++;
+                    }
+                  takeIt();
+                } 
+                currentlyScanningToken = true;
+                int kind;
+                kind = scanToken();
+                return kind;
+          }
+        }
+      }
+      //-------------------start scan single line comment----------------------
+        
+      else{
         return Token.DIV;
+      }
     case '{':
         takeIt();
         return Token.LEFTBRACE;
@@ -515,12 +591,6 @@ public final class Scanner {
       return Token.GREATER;
            
     case '\u0000': // sourceFile.eot:
-      // if(scanningTempBuffer){
-      //   switchToRawSrouce();
-      // }
-      // else{
-      //   currentLexeme.append('$');
-      // }
       currentLexeme.append('$');
       return Token.EOF;
     // Add code here for the remaining MiniC tokens...
@@ -532,46 +602,6 @@ public final class Scanner {
     }
   }
 
-  private int scanToken_tempBuffer(char tempchar){
-    if((tempchar >= 'A' && tempchar <= 'Z') || (tempchar >= 'a' && tempchar <= 'z')){
-      tempLexeme.append(tempchar);
-      // while ((tempchar >= 'A' && tempchar <= 'Z') || (tempchar >= 'a' && tempchar <= 'z') || isDigit(tempchar) || tempchar == '_')
-      // {
-      //   tempLexeme.append(tempchar);
-      //   System.out.println(tempLexeme);
-      // }
-      if(tempLexeme.equals("return")){
-        tempLexeme = new StringBuffer("");
-        return Token.RETURN;
-      }
-      else if(tempLexeme.equals("if")){
-        tempLexeme = new StringBuffer("");
-        return Token.IF;
-      }
-      else if(tempLexeme.equals("while")){
-        tempLexeme = new StringBuffer("");
-        return Token.WHILE;
-      }
-      else if(tempLexeme.equals("bool")){
-        tempLexeme = new StringBuffer("");
-        return Token.BOOL;
-      }
-      else if(tempLexeme.equals("int")){
-        tempLexeme = new StringBuffer("");
-        return Token.INT;
-      }
-      else if(tempLexeme.equals("float")){
-        tempLexeme = new StringBuffer("");
-        return Token.FLOAT;
-      }
-      tempLexeme = new StringBuffer("");
-      return Token.ID;
-    }
-    else if (tempchar == '+'){
-      return Token.PLUS;
-    }
-    return Token.ERROR;
-  }
 
   public Token scan() {
     Token currentToken;
@@ -612,17 +642,9 @@ public final class Scanner {
         currentColNr--;
       }
       temp_buffer.append(currentLexeme);
-      // temp_buffer.append('\u0000');
-
       currentLexeme = new StringBuffer();
       String str = temp_buffer.toString();
       lengthOfTempBuffer = str.length();
-      // if(str.charAt(str.length()-1) == ' ' || str.charAt(str.length()-1) == '\n' || str.charAt(str.length()-1) == '\t' || str.charAt(str.length()-1) == '\r' || str.charAt(str.length()-1) == 'f'){
-      //   str = str.substring(0,str.length()-1);
-      // }
-      // System.out.println("lengthOfTempBuffer -> " + lengthOfTempBuffer);
-      
-      pointerOfTempBuffer = 0;
       try{
         BufferedWriter writer = new BufferedWriter(new FileWriter(file));
         writer.write(str);
@@ -636,48 +658,24 @@ public final class Scanner {
       char test = sourceFile.readChar();
       StringBuffer testtest = new StringBuffer("");
       
-      // while(currentChar != '\u0000'){
-      //   takeIt();
-      // }
-      // System.out.println(currentLexeme);
-
     }
-    //-------------------------test temp buffer------------------
-
-    // if (temp_buffer.length() != 0){
-    //   currentColNr = currentColNr+1;
-    //   pos.StartLine = currentLineNr;
-    //   pos.EndLine = currentLineNr;
-    //   pos.StartCol = currentColNr;
-    //   if(temp_buffer.charAt(0) == ' '){
-    //       temp_buffer = temp_buffer.delete(0,1);
-    //       // currentColNr++;
-    //       pos.StartCol = currentColNr+1;
-    //   }
-    //   try{
-    //     kind = scanToken_tempBuffer(temp_buffer.charAt(0));
-    //     currentToken = new Token(kind, Character.toString(temp_buffer.charAt(0)), pos);
-    //     currentColNr = pos.StartCol;
-    //     pos.EndCol = currentColNr;
-    //     temp_buffer = temp_buffer.delete(0,1);
-    //   } catch (java.lang.StringIndexOutOfBoundsException e){
-    //     kind = scanToken();
-    //     currentToken = new Token(kind, currentLexeme.toString(), pos);
-    //     pos.EndCol = currentColNr;
-    //   }
-    // }
-    
     
     // Note: currentLineNr and currentColNr are not maintained yet!
-    // else{
-      pos.StartLine = currentLineNr;
-      pos.EndLine = currentLineNr;
       pos.StartCol = currentColNr+1;
+      
       kind = scanToken();
       currentToken = new Token(kind, currentLexeme.toString(), pos);
+      pos.StartLine = currentLineNr;
+      pos.EndLine = currentLineNr;
+      if(afterCommentStartCol != -1){
+        pos.StartCol = afterCommentStartCol+1;
+        afterCommentStartCol = -1;
+      }
       if(kind == 18){               //if String Literal
         if(is_unterminated_STRINGLITERAL){
           pos.EndCol = pos.StartCol+currentLexeme.length();
+          pos.StartLine = currentLineNr-1;
+          pos.EndLine = currentLineNr-1;
           is_unterminated_STRINGLITERAL = false;
         }
         else{
@@ -688,8 +686,6 @@ public final class Scanner {
       else{
         pos.EndCol = pos.StartCol+currentLexeme.length()-1;
       }
-    // }
-    
     if (verbose)
       currentToken.print();
     else
